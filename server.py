@@ -88,6 +88,10 @@ def init_db():
                 result TEXT NOT NULL,
                 created_at INTEGER NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS cache (
                 key TEXT PRIMARY KEY,
                 result TEXT NOT NULL,
@@ -100,7 +104,14 @@ def init_db():
                 "INSERT INTO users (username, password, role, created_at) VALUES (?,?,?,?)",
                 (DEFAULT_ADMIN_USER, hash_password(DEFAULT_ADMIN_PASS), "admin", int(time.time())),
             )
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('allow_signup', '1')")
         conn.execute("DELETE FROM sessions WHERE expires_at < ?", (int(time.time()),))
+
+
+def get_setting(key, default=None):
+    with db_lock, db() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+    return row["value"] if row else default
 
 
 # ---------------------------------------------------------------- keyword research
@@ -288,6 +299,7 @@ MIME = {".html": "text/html; charset=utf-8", ".js": "application/javascript; cha
         ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon"}
 
 login_failures = {}
+signup_times = {}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -339,6 +351,16 @@ class Handler(BaseHTTPRequestHandler):
             return None
         return user
 
+    def start_session(self, row):
+        token = secrets.token_urlsafe(32)
+        with db_lock, db() as conn:
+            conn.execute("INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)",
+                         (token, row["id"], int(time.time()) + SESSION_DAYS * 86400))
+            conn.execute("UPDATE users SET last_login=? WHERE id=?", (int(time.time()), row["id"]))
+        cookie = f"sid={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_DAYS * 86400}"
+        return self.send_json({"user": {"id": row["id"], "username": row["username"], "role": row["role"]}},
+                              headers={"Set-Cookie": cookie})
+
     def serve_static(self, path):
         if path in ("/", ""):
             path = "/index.html"
@@ -364,7 +386,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/me":
             user = self.current_user()
             if not user:
-                return self.send_json({"user": None})
+                return self.send_json({"user": None, "allow_signup": get_setting("allow_signup", "1") == "1"})
             return self.send_json({"user": {"id": user["id"], "username": user["username"], "role": user["role"]}})
 
         if path == "/api/history":
@@ -400,6 +422,7 @@ class Handler(BaseHTTPRequestHandler):
                     "searches": conn.execute("SELECT COUNT(*) FROM searches").fetchone()[0],
                     "searches_24h": conn.execute("SELECT COUNT(*) FROM searches WHERE created_at>?", (day_ago,)).fetchone()[0],
                     "keywords_found": conn.execute("SELECT COALESCE(SUM(total),0) FROM searches").fetchone()[0],
+                    "allow_signup": conn.execute("SELECT value FROM settings WHERE key='allow_signup'").fetchone()[0] == "1",
                     "top_seeds": [dict(r) for r in conn.execute(
                         "SELECT keyword, COUNT(*) AS n FROM searches GROUP BY keyword ORDER BY n DESC LIMIT 8").fetchall()],
                 }
@@ -446,14 +469,38 @@ class Handler(BaseHTTPRequestHandler):
             if not row["active"]:
                 return self.send_json({"error": "Yeh account band hai. Admin se rabta karein."}, 403)
             login_failures.pop(ip, None)
-            token = secrets.token_urlsafe(32)
+            return self.start_session(row)
+
+        if path == "/api/register":
+            if get_setting("allow_signup", "1") != "1":
+                return self.send_json({"error": "Abhi naye sign-up band hain. Admin se rabta karein."}, 403)
+            ip = self.client_address[0]
+            recent = [t for t in signup_times.get(ip, []) if time.time() - t < 3600]
+            if len(recent) >= 5:
+                return self.send_json({"error": "Is network se bohat zyada accounts ban chuke. Baad mein try karein."}, 429)
+            username = str(body.get("username", "")).strip().lower()
+            password = str(body.get("password", ""))
+            if not re.fullmatch(r"[a-z0-9_.-]{3,32}", username):
+                return self.send_json({"error": "Username 3-32 characters (a-z, 0-9, _ . -)"}, 400)
+            if len(password) < 6:
+                return self.send_json({"error": "Password kam az kam 6 characters ka ho"}, 400)
+            try:
+                with db_lock, db() as conn:
+                    conn.execute("INSERT INTO users (username, password, role, created_at) VALUES (?,?,?,?)",
+                                 (username, hash_password(password), "user", int(time.time())))
+                    row = conn.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+            except sqlite3.IntegrityError:
+                return self.send_json({"error": "Yeh username pehle se mojood hai"}, 400)
+            signup_times[ip] = recent + [time.time()]
+            return self.start_session(row)
+
+        if path == "/api/admin/settings":
+            if not self.require(admin=True):
+                return
             with db_lock, db() as conn:
-                conn.execute("INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)",
-                             (token, row["id"], int(time.time()) + SESSION_DAYS * 86400))
-                conn.execute("UPDATE users SET last_login=? WHERE id=?", (int(time.time()), row["id"]))
-            cookie = f"sid={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_DAYS * 86400}"
-            return self.send_json({"user": {"id": row["id"], "username": row["username"], "role": row["role"]}},
-                                  headers={"Set-Cookie": cookie})
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('allow_signup', ?)",
+                             ("1" if body.get("allow_signup") else "0",))
+            return self.send_json({"ok": True})
 
         if path == "/api/logout":
             cookie = SimpleCookie(self.headers.get("Cookie", ""))

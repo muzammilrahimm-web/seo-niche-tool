@@ -52,14 +52,39 @@ function showApp() {
   go("research");
 }
 
+let signupMode = false;
+
+function setSignupMode(on) {
+  signupMode = on;
+  $("#confirm-wrap").classList.toggle("hidden", !on);
+  $("#confirm-wrap input").required = on;
+  $("#login-submit").textContent = on ? "Account Banayein" : "Login";
+  $("#switch-text").textContent = on ? "Pehle se account hai?" : "Naya account chahiye?";
+  $("#switch-link").textContent = on ? "Login karein" : "Sign up karein";
+  $('#login-form [name="password"]').autocomplete = on ? "new-password" : "current-password";
+  $("#login-error").textContent = "";
+}
+
+$("#switch-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  setSignupMode(!signupMode);
+});
+
 $("#login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
   $("#login-error").textContent = "";
+  if (signupMode && f.get("password") !== f.get("confirm")) {
+    $("#login-error").textContent = "Dono password ek jaise nahi hain";
+    return;
+  }
   try {
-    const { user } = await api("/api/login", { body: { username: f.get("username"), password: f.get("password") } });
+    const { user } = await api(signupMode ? "/api/register" : "/api/login", {
+      body: { username: f.get("username"), password: f.get("password") },
+    });
     me = user;
     e.target.reset();
+    setSignupMode(false);
     showApp();
   } catch (err) {
     $("#login-error").textContent = err.message;
@@ -272,6 +297,8 @@ async function loadAdmin() {
       ["Searches (24h)", stats.searches_24h], ["Keywords Found", stats.keywords_found],
     ].map(([l, v]) => `<div class="stat"><b>${v}</b><small>${l}</small></div>`).join("");
 
+    $("#allow-signup").checked = stats.allow_signup;
+
     $("#top-seeds").innerHTML = stats.top_seeds.map((t) =>
       `<div class="list-item"><div class="grow"><b>${esc(t.keyword)}</b></div><span class="pill">${t.n}</span></div>`).join("") ||
       '<p class="muted">Abhi koi data nahi.</p>';
@@ -329,6 +356,16 @@ $("#users-table").addEventListener("click", async (e) => {
   }
 });
 
+$("#allow-signup").addEventListener("change", async (e) => {
+  try {
+    await api("/api/admin/settings", { body: { allow_signup: e.target.checked } });
+    toast(e.target.checked ? "Sign-up chalu" : "Sign-up band");
+  } catch (err) {
+    e.target.checked = !e.target.checked;
+    toast(err.message);
+  }
+});
+
 $("#new-user-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
@@ -379,6 +416,7 @@ $$(".install-btn").forEach((b) => b.addEventListener("click", async () => {
 
 // ------------------------------------------------------------ boot
 
-api("/api/me").then(({ user }) => {
+api("/api/me").then(({ user, allow_signup }) => {
+  $("#signup-switch").classList.toggle("hidden", !allow_signup);
   if (user) { me = user; showApp(); } else showLogin();
 }).catch(showLogin);

@@ -22,8 +22,9 @@ Koi `pip install` nahi chahiye — sirf Python 3.
 - Niche Score + verdict (Excellent / Good / Average / Tough)
 - Filters: Easy, Questions, Long-tail, Commercial — CSV export aur Copy
 - Top modifiers (content ideas) — click karke us par naya research
+- **Sign-up:** log login page par "Sign up karein" dabakar khud account bana sakte hain
 - Search history (har user ki alag)
-- Admin panel: users banayein, block/unblock, password reset, delete, saari searches aur stats
+- Admin panel: sign-up on/off switch, users banayein, block/unblock, password reset, delete, saari searches aur stats
 
 ## Note
 Scores free autocomplete data se banay hue estimates hain, asal Google search volume nahi. Asal volume ke liye paid API (Google Ads / DataForSEO) chahiye.
