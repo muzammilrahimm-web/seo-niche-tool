@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Niche Finder</title>
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="SEO niche & keyword research tool">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Login -->
+  <section id="login-view" class="login hidden">
+    <form id="login-form" class="card login-card">
+      <img src="/icon.svg" alt="" class="login-logo">
+      <h1>Niche Finder</h1>
+      <p class="muted">SEO niche &amp; keyword research</p>
+      <label>Username<input name="username" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary" type="submit">Login</button>
+      <p id="login-error" class="error"></p>
+    </form>
+  </section>
+
+  <!-- App -->
+  <div id="app" class="hidden">
+    <aside class="sidebar">
+      <div class="brand"><img src="/icon.svg" alt=""><span>Niche Finder</span></div>
+      <nav id="nav">
+        <a data-view="research" class="active"><span>🔍</span><b>Research</b></a>
+        <a data-view="history"><span>🕘</span><b>History</b></a>
+        <a data-view="admin" class="admin-only"><span>🛡️</span><b>Admin</b></a>
+        <a data-view="settings"><span>⚙️</span><b>Settings</b></a>
+      </nav>
+      <div class="sidebar-foot">
+        <button class="btn ghost hidden install-btn">⬇ Install App</button>
+        <div class="who"><span id="who-name"></span> <small id="who-role"></small></div>
+        <button id="logout-btn" class="btn ghost">Logout</button>
+      </div>
+    </aside>
+
+    <main>
+      <!-- Research -->
+      <section id="view-research" class="view">
+        <form id="research-form" class="card search">
+          <input id="kw" placeholder="Seed keyword likhein, e.g. keto diet" required maxlength="80">
+          <div class="search-row">
+            <select id="country" title="Country">
+              <option value="us">🇺🇸 USA</option><option value="pk">🇵🇰 Pakistan</option><option value="in">🇮🇳 India</option>
+              <option value="gb">🇬🇧 UK</option><option value="ca">🇨🇦 Canada</option><option value="au">🇦🇺 Australia</option>
+              <option value="ae">🇦🇪 UAE</option><option value="sa">🇸🇦 Saudi</option><option value="de">🇩🇪 Germany</option>
+            </select>
+            <select id="language" title="Language">
+              <option value="en">English</option><option value="ur">Urdu</option><option value="hi">Hindi</option>
+              <option value="ar">Arabic</option><option value="de">German</option><option value="es">Spanish</option>
+            </select>
+            <select id="depth" title="Depth">
+              <option value="quick">Quick (~5s)</option><option value="deep">Deep (+YouTube)</option>
+            </select>
+            <button class="btn primary" type="submit" id="research-btn">Research</button>
+          </div>
+        </form>
+
+        <div id="loading" class="card loading hidden"><div class="spinner"></div><p>Google, DuckDuckGo aur YouTube se keywords nikal raha hai…</p></div>
+        <p id="research-error" class="error"></p>
+
+        <div id="results" class="hidden">
+          <div class="score-row">
+            <div class="card score-card">
+              <div class="ring" id="score-ring"><span id="niche-score">0</span></div>
+              <div><small class="muted">Niche Score</small><h2 id="verdict">–</h2><small class="muted" id="meta"></small></div>
+            </div>
+            <div class="stats" id="stats"></div>
+          </div>
+
+          <div class="grid2">
+            <div class="card"><h3>Search Intent</h3><div id="intents"></div></div>
+            <div class="card"><h3>Top Modifiers <small class="muted">(content ideas)</small></h3><div id="modifiers" class="chips"></div></div>
+          </div>
+
+          <div class="card">
+            <div class="table-head">
+              <h3>Keywords <small class="muted" id="kw-count"></small></h3>
+              <div class="filters">
+                <input id="filter-text" placeholder="Filter…">
+                <select id="filter-type">
+                  <option value="all">All</option><option value="easy">Easy only</option><option value="questions">Questions</option>
+                  <option value="longtail">Long-tail (4+ words)</option><option value="commercial">Commercial / Buying</option>
+                </select>
+                <button class="btn" id="copy-btn" type="button">Copy</button>
+                <button class="btn" id="csv-btn" type="button">CSV</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="kw-table">
+                <thead><tr>
+                  <th data-sort="keyword">Keyword</th><th data-sort="popularity">Popularity</th>
+                  <th data-sort="competition">Competition</th><th data-sort="opportunity">Opportunity</th>
+                  <th data-sort="intent">Intent</th><th data-sort="words">Words</th>
+                </tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <p class="muted note">Note: Popularity aur Competition free autocomplete data se banay hue <b>estimates</b> hain (0–100), asal Google search volume nahi.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- History -->
+      <section id="view-history" class="view hidden">
+        <div class="card"><h3>Meri Searches</h3><div id="history-list" class="list"></div></div>
+      </section>
+
+      <!-- Admin -->
+      <section id="view-admin" class="view hidden">
+        <div class="stats" id="admin-stats"></div>
+        <div class="grid2">
+          <div class="card">
+            <h3>Naya User Banayein</h3>
+            <form id="new-user-form" class="stack">
+              <input name="username" placeholder="Username" required>
+              <input name="password" placeholder="Password (6+ chars)" required>
+              <select name="role"><option value="user">User</option><option value="admin">Admin</option></select>
+              <button class="btn primary">Create User</button>
+              <p class="error" id="new-user-error"></p>
+            </form>
+          </div>
+          <div class="card"><h3>Top Searched Niches</h3><div id="top-seeds" class="list"></div></div>
+        </div>
+        <div class="card"><h3>Users</h3><div class="table-wrap"><table id="users-table"><thead><tr>
+          <th>Username</th><th>Role</th><th>Status</th><th>Searches</th><th>Last login</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div></div>
+        <div class="card"><h3>All Searches</h3><div class="table-wrap"><table id="searches-table"><thead><tr>
+          <th>Keyword</th><th>User</th><th>Country</th><th>Keywords</th><th>Score</th><th>Date</th>
+        </tr></thead><tbody></tbody></table></div></div>
+      </section>
+
+      <!-- Settings -->
+      <section id="view-settings" class="view hidden">
+        <div class="card narrow">
+          <h3>Password Badlein</h3>
+          <form id="pw-form" class="stack">
+            <input name="old" type="password" placeholder="Purana password" required>
+            <input name="new" type="password" placeholder="Naya password (6+ chars)" required>
+            <button class="btn primary">Save</button>
+            <p id="pw-msg"></p>
+          </form>
+        </div>
+        <div class="card narrow">
+          <h3>Account</h3>
+          <div class="stack">
+            <button class="btn primary hidden install-btn">⬇ Install App</button>
+            <button id="logout-btn-2" class="btn">Logout</button>
+          </div>
+        </div>
+        <div class="card narrow">
+          <h3>App Install Karein</h3>
+          <p class="muted"><b>Windows:</b> Chrome/Edge mein address bar ke right side par install icon (⊕) dabayein, ya sidebar mein "Install App".</p>
+          <p class="muted"><b>Android:</b> Chrome mein menu (⋮) → "Add to Home screen" / "Install app".</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
