@@ -26,13 +26,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 HOST = os.environ.get("SEO_HOST", "0.0.0.0")
-PORT = int(os.environ.get("SEO_PORT", "8765"))
+PORT = int(os.environ.get("PORT") or os.environ.get("SEO_PORT", "8765"))
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
-DB_PATH = BASE_DIR / "data" / "seo_tool.db"
+DB_PATH = Path(os.environ.get("DATA_DIR") or BASE_DIR / "data") / "seo_tool.db"
 
+# Online (cloud) par ADMIN_PASSWORD env variable zaroor set karein.
 DEFAULT_ADMIN_USER = "admin"
-DEFAULT_ADMIN_PASS = "Admin@12345"
+ADMIN_PASS_FROM_ENV = os.environ.get("ADMIN_PASSWORD")
+DEFAULT_ADMIN_PASS = ADMIN_PASS_FROM_ENV or "Admin@12345"
+SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
+GOOGLE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "")
 
 SESSION_DAYS = 7
 CACHE_HOURS = 6
@@ -61,7 +65,7 @@ def verify_password(password, stored):
 
 
 def init_db():
-    DB_PATH.parent.mkdir(exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with db_lock, db() as conn:
         conn.executescript(
             """
@@ -104,6 +108,9 @@ def init_db():
                 "INSERT INTO users (username, password, role, created_at) VALUES (?,?,?,?)",
                 (DEFAULT_ADMIN_USER, hash_password(DEFAULT_ADMIN_PASS), "admin", int(time.time())),
             )
+        elif ADMIN_PASS_FROM_ENV:
+            conn.execute("UPDATE users SET password=?, role='admin', active=1 WHERE username=?",
+                         (hash_password(ADMIN_PASS_FROM_ENV), DEFAULT_ADMIN_USER))
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('allow_signup', '1')")
         conn.execute("DELETE FROM sessions WHERE expires_at < ?", (int(time.time()),))
 
@@ -357,17 +364,49 @@ class Handler(BaseHTTPRequestHandler):
             conn.execute("INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)",
                          (token, row["id"], int(time.time()) + SESSION_DAYS * 86400))
             conn.execute("UPDATE users SET last_login=? WHERE id=?", (int(time.time()), row["id"]))
-        cookie = f"sid={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_DAYS * 86400}"
+        secure = "; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""
+        cookie = f"sid={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_DAYS * 86400}{secure}"
         return self.send_json({"user": {"id": row["id"], "username": row["username"], "role": row["role"]}},
                               headers={"Set-Cookie": cookie})
 
+    def client_ip(self):
+        forwarded = self.headers.get("X-Forwarded-For")
+        return forwarded.split(",")[-1].strip() if forwarded else self.client_address[0]
+
+    def site_url(self):
+        if SITE_URL:
+            return SITE_URL
+        proto = self.headers.get("X-Forwarded-Proto", "http")
+        return f"{proto}://{self.headers.get('Host', f'localhost:{PORT}')}"
+
+    def send_text(self, text, content_type):
+        data = text.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def serve_static(self, path):
+        if path == "/robots.txt":
+            return self.send_text(f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {self.site_url()}/sitemap.xml\n",
+                                  "text/plain; charset=utf-8")
+        if path == "/sitemap.xml":
+            return self.send_text(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                f"  <url><loc>{self.site_url()}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n"
+                "</urlset>\n", "application/xml; charset=utf-8")
         if path in ("/", ""):
             path = "/index.html"
         target = (STATIC_DIR / path.lstrip("/")).resolve()
         if not str(target).startswith(str(STATIC_DIR)) or not target.is_file():
             target = STATIC_DIR / "index.html"
         data = target.read_bytes()
+        if target.name == "index.html":
+            verification = f'<meta name="google-site-verification" content="{GOOGLE_VERIFICATION}">' if GOOGLE_VERIFICATION else ""
+            data = (data.decode("utf-8").replace("__SITE_URL__", self.site_url())
+                    .replace("<!--GOOGLE_VERIFICATION-->", verification).encode("utf-8"))
         self.send_response(200)
         self.send_header("Content-Type", MIME.get(target.suffix, "application/octet-stream"))
         self.send_header("Content-Length", str(len(data)))
@@ -455,7 +494,7 @@ class Handler(BaseHTTPRequestHandler):
         body = self.read_json()
 
         if path == "/api/login":
-            ip = self.client_address[0]
+            ip = self.client_ip()
             fails = [t for t in login_failures.get(ip, []) if time.time() - t < 600]
             if len(fails) >= 8:
                 return self.send_json({"error": "Bohat zyada ghalat koshishen. 10 minute baad try karein."}, 429)
@@ -474,7 +513,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/register":
             if get_setting("allow_signup", "1") != "1":
                 return self.send_json({"error": "Abhi naye sign-up band hain. Admin se rabta karein."}, 403)
-            ip = self.client_address[0]
+            ip = self.client_ip()
             recent = [t for t in signup_times.get(ip, []) if time.time() - t < 3600]
             if len(recent) >= 5:
                 return self.send_json({"error": "Is network se bohat zyada accounts ban chuke. Baad mein try karein."}, 429)
@@ -632,7 +671,10 @@ def main():
     print("  SEO Niche Research Tool chal raha hai")
     print(f"  Computer par:  http://localhost:{PORT}")
     print(f"  Mobile par (same WiFi):  http://{lan_ip()}:{PORT}")
-    print(f"  Default admin: {DEFAULT_ADMIN_USER} / {DEFAULT_ADMIN_PASS}")
+    if ADMIN_PASS_FROM_ENV:
+        print(f"  Admin: {DEFAULT_ADMIN_USER} / (ADMIN_PASSWORD env se)")
+    else:
+        print(f"  Default admin: {DEFAULT_ADMIN_USER} / {DEFAULT_ADMIN_PASS}")
     print("  Band karne ke liye: Ctrl + C")
     print("=" * 60)
     try:

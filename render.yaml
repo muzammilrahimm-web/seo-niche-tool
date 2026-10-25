@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: seo-niche-tool
+    runtime: python
+    plan: free
+    buildCommand: echo "No build needed"
+    startCommand: python server.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GOOGLE_SITE_VERIFICATION
+        sync: false

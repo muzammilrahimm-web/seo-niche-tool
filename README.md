@@ -30,3 +30,20 @@ Koi `pip install` nahi chahiye — sirf Python 3.
 Scores free autocomplete data se banay hue estimates hain, asal Google search volume nahi. Asal volume ke liye paid API (Google Ads / DataForSEO) chahiye.
 
 Data `data/seo_tool.db` mein save hota hai. Admin password bhool jayein to yeh file delete karke server dobara chalayein (saara data reset ho jayega, default admin wapas aa jayega).
+
+## Online publish (Render — free)
+1. Is link par jaayein: https://render.com/deploy?repo=https://github.com/muzammilrahimm-web/seo-niche-tool
+2. GitHub se Render par login karein.
+3. `ADMIN_PASSWORD` mein apna mazboot admin password likhein (`GOOGLE_SITE_VERIFICATION` abhi khaali chhod sakte hain).
+4. "Deploy" dabayein. Kuch minute baad URL milega: `https://seo-niche-tool.onrender.com` (ya milta julta).
+
+Free plan par 15 minute koi na aaye to server so jata hai, pehli dafa khulne mein ~1 minute lagta hai.
+Free plan par disk permanent nahi: restart/redeploy par users aur history mit sakti hai (admin password env se wapas set ho jata hai).
+
+## Google par laana (Search Console)
+1. https://search.google.com/search-console kholein → "Add property" → "URL prefix" → apna Render URL.
+2. "HTML tag" method chunein, `content="..."` wala code copy karein.
+3. Render → Environment → `GOOGLE_SITE_VERIFICATION` mein woh code dalein → Save (app restart hogi).
+4. Search Console mein "Verify" dabayein.
+5. Sitemaps mein `sitemap.xml` submit karein, aur URL Inspection mein "Request indexing" dabayein.
+Google ko site dikhane mein aam tor par kuch din se 2-3 hafte lagte hain.

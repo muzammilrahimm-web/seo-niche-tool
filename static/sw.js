@@ -1,4 +1,4 @@
-const CACHE = "niche-finder-v1";
+const CACHE = "niche-finder-v2";
 const SHELL = ["/", "/index.html", "/style.css", "/app.js", "/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
