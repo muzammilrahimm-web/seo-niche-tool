@@ -47,3 +47,17 @@ Free plan par disk permanent nahi: restart/redeploy par users aur history mit sa
 4. Search Console mein "Verify" dabayein.
 5. Sitemaps mein `sitemap.xml` submit karein, aur URL Inspection mein "Request indexing" dabayein.
 Google ko site dikhane mein aam tor par kuch din se 2-3 hafte lagte hain.
+
+## Chrome Extension (side panel)
+Extension browser ke side mein khulta hai aur bina server ke khud keyword research karta hai.
+
+**Install:**
+1. [Releases](https://github.com/muzammilrahimm-web/seo-niche-tool/releases/latest) se `niche-finder-extension.zip` download karke unzip karein (ya repo ka `extension` folder use karein).
+2. Chrome mein `chrome://extensions` kholein (Edge: `edge://extensions`).
+3. Upar right side **Developer mode** on karein.
+4. **Load unpacked** dabayein aur unzip kiya hua folder chunein.
+5. Puzzle (🧩) icon se Niche Finder ko **pin** karein. Icon dabane par side panel khulega.
+
+**Shortcut:** kisi bhi page par text select karein → right-click → "Niche Finder: … research karein".
+
+Chrome Web Store par daalne ke liye Google developer account chahiye ($5 ek dafa): https://chrome.google.com/webstore/devconsole — wahan yahi zip upload karein.

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Niche Finder</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><img src="icons/icon-32.png" alt=""><span>Niche Finder</span></div>
+    <div class="tabs">
+      <button class="tab active" data-view="research" title="Research">🔍</button>
+      <button class="tab" data-view="history" title="History">🕘</button>
+      <button class="tab" data-view="settings" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Research -->
+    <section id="view-research" class="view">
+      <form id="research-form" class="card search">
+        <input id="kw" placeholder="Seed keyword, e.g. keto diet" required maxlength="80">
+        <div class="row">
+          <select id="country" title="Country">
+            <option value="us">🇺🇸 USA</option><option value="pk">🇵🇰 Pakistan</option><option value="in">🇮🇳 India</option>
+            <option value="gb">🇬🇧 UK</option><option value="ca">🇨🇦 Canada</option><option value="au">🇦🇺 Australia</option>
+            <option value="ae">🇦🇪 UAE</option><option value="sa">🇸🇦 Saudi</option><option value="de">🇩🇪 Germany</option>
+          </select>
+          <select id="language" title="Language">
+            <option value="en">English</option><option value="ur">Urdu</option><option value="hi">Hindi</option>
+            <option value="ar">Arabic</option><option value="de">German</option><option value="es">Spanish</option>
+          </select>
+        </div>
+        <div class="row">
+          <select id="depth" title="Depth">
+            <option value="quick">Quick (~5s)</option><option value="deep">Deep (+YouTube)</option>
+          </select>
+          <button class="btn primary" type="submit" id="research-btn">Research</button>
+        </div>
+      </form>
+
+      <div id="loading" class="card loading hidden">
+        <div class="spinner"></div>
+        <div class="grow"><p>Keywords nikal raha hai… <span id="progress-text"></span></p><div class="bar"><i id="progress-bar"></i></div></div>
+      </div>
+      <p id="error" class="error"></p>
+
+      <div id="results" class="hidden">
+        <div class="card score-card">
+          <div class="ring" id="score-ring"><span id="niche-score">0</span></div>
+          <div><small class="muted">Niche Score</small><h2 id="verdict">–</h2><small class="muted" id="meta"></small></div>
+        </div>
+        <div class="stats" id="stats"></div>
+
+        <div class="card"><h3>Search Intent</h3><div id="intents"></div></div>
+        <div class="card"><h3>Top Modifiers <small class="muted">(click = naya research)</small></h3><div id="modifiers" class="chips"></div></div>
+
+        <div class="card">
+          <div class="list-head">
+            <h3>Keywords <small class="muted" id="kw-count"></small></h3>
+            <div class="row">
+              <button class="btn small" id="copy-btn" type="button">Copy</button>
+              <button class="btn small" id="csv-btn" type="button">CSV</button>
+            </div>
+          </div>
+          <div class="row filters">
+            <input id="filter-text" placeholder="Filter…">
+            <select id="filter-type">
+              <option value="all">All</option><option value="easy">Easy</option><option value="questions">Questions</option>
+              <option value="longtail">Long-tail</option><option value="commercial">Buying</option>
+            </select>
+            <select id="sort">
+              <option value="opportunity">Opportunity ▾</option><option value="popularity">Popularity ▾</option>
+              <option value="competition">Competition ▴</option><option value="keyword">A–Z</option>
+            </select>
+          </div>
+          <div class="legend muted"><span>Pop</span><span>Comp</span><span>Opp</span></div>
+          <div id="kw-list"></div>
+          <p class="muted note">Pop/Comp/Opp free autocomplete data se banay estimates (0–100) hain, asal search volume nahi.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section id="view-history" class="view hidden">
+      <div class="card">
+        <div class="list-head"><h3>History</h3><button class="btn small" id="clear-history" type="button">Clear</button></div>
+        <div id="history-list"></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="view-settings" class="view hidden">
+      <div class="card stack">
+        <h3>Full Tool (website)</h3>
+        <p class="muted">Admin panel, sign-up aur sab users ki history ke liye full website kholein.</p>
+        <input id="site-url" placeholder="http://localhost:8765">
+        <div class="row">
+          <button class="btn" id="save-url" type="button">Save</button>
+          <button class="btn primary" id="open-site" type="button">Website kholein ↗</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Shortcut</h3>
+        <p class="muted">Kisi bhi page par text select karein → right-click → <b>"Niche Finder: … research karein"</b>. Side panel khud khul kar research shuru kar dega.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="research.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
