@@ -52,7 +52,7 @@ Google ko site dikhane mein aam tor par kuch din se 2-3 hafte lagte hain.
 Extension browser ke side mein khulta hai aur bina server ke khud keyword research karta hai.
 
 **Install:**
-1. [Releases](https://github.com/muzammilrahimm-web/seo-niche-tool/releases/latest) se `niche-finder-extension.zip` download karke unzip karein (ya repo ka `extension` folder use karein).
+1. [niche-finder-extension.zip](https://github.com/muzammilrahimm-web/seo-niche-tool/raw/main/niche-finder-extension.zip) download karke unzip karein (ya repo ka `extension` folder use karein).
 2. Chrome mein `chrome://extensions` kholein (Edge: `edge://extensions`).
 3. Upar right side **Developer mode** on karein.
 4. **Load unpacked** dabayein aur unzip kiya hua folder chunein.
